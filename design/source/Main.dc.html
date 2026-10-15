@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Find a Park – desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1E5B3F}a:hover{color:#123826}
+.park-row:hover{border-color:#1E5B3F}
+.park-row:focus-visible,.marker:focus-visible,.btn:focus-visible,.maplink:focus-visible{outline:3px solid #B45309;outline-offset:2px}
+.marker:hover{transform:translate(-50%,-50%) scale(1.1)}
+</style>
+</helmet>
+<div style="height: 100vh; min-height: 640px; display: flex; flex-direction: column; background: #F6F4EE; color: #1B2620; font-family: 'Public Sans', 'Segoe UI', system-ui, sans-serif">
+  <header style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 14px 24px; background: #1E5B3F; color: #FFFFFF">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"></path><path d="M12 16 6 16 12 3 18 16Z"></path></svg>
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.01em">Find a Park</span>
+        <span style="font-size: 14px; color: #D7E8DD">Parks in the New York City area</span>
+      </div>
+    </div>
+    <span style="font-size: 14px; color: #D7E8DD">{{count}} parks</span>
+  </header>
+
+  <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Parks" style="flex: 0 1 400px; min-width: 300px; max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 20px; border-right: 1px solid #DAD6CB; display: flex; flex-direction: column; gap: 16px">
+
+      <sc-if value="{{showList}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 800">All parks</h1>
+          <p style="margin: 0; font-size: 15px; color: #4F5B54">Choose a park to see hours, amenities and directions.</p>
+        </div>
+        <ul style="margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{parks}}" as="p" hint-placeholder-count="6">
+            <li style="list-style: none">
+              <button type="button" class="park-row" onClick="{{p.select}}" style="width: 100%; box-sizing: border-box; text-align: left; display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; background: #FFFFFF; border: 1px solid #DAD6CB; border-radius: 10px; cursor: pointer; font: inherit; color: inherit">
+                <span aria-hidden="true" style="flex: none; width: 30px; height: 30px; border-radius: 50%; background: #1E5B3F; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700">{{p.num}}</span>
+                <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+                  <span style="font-size: 17px; font-weight: 700">{{p.name}}</span>
+                  <span style="font-size: 15px; color: #4F5B54">{{p.addressText}}</span>
+                  <span style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px">
+                    <sc-for list="{{p.chips}}" as="c" hint-placeholder-count="3">
+                      <span style="font-size: 13px; padding: 3px 8px; border-radius: 999px; background: #E9EFE7; color: #23472F">{{c}}</span>
+                    </sc-for>
+                  </span>
+                </span>
+              </button>
+            </li>
+          </sc-for>
+        </ul>
+      </sc-if>
+
+      <sc-if value="{{showDetails}}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="btn" onClick="{{back}}" style="align-self: flex-start; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #DAD6CB; border-radius: 8px; background: #FFFFFF; font: inherit; font-size: 15px; font-weight: 600; color: #1B2620; cursor: pointer">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+          All parks
+        </button>
+
+        <sc-if value="{{s.hasImages}}" hint-placeholder-val="{{ true }}">
+          <div role="img" aria-label="Park photo placeholder" style="height: 190px; border-radius: 10px; background: #D9E2D3; display: flex; align-items: flex-end; justify-content: flex-end; padding: 10px; box-sizing: border-box">
+            <span style="font-size: 13px; font-weight: 600; padding: 4px 8px; border-radius: 6px; background: rgba(27,38,32,0.78); color: #FFFFFF">{{s.photoText}}</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{s.noImages}}" hint-placeholder-val="{{ false }}">
+          <div style="height: 120px; border-radius: 10px; border: 2px dashed #C9C4B6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #4F5B54; font-size: 15px">
+            <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>
+            No photos for this park yet
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h2 style="margin: 0; font-size: 26px; line-height: 1.2; font-weight: 800">{{s.name}}</h2>
+          <p style="margin: 0; font-size: 16px; color: #4F5B54">{{s.addressText}}</p>
+          <a class="maplink" href="{{s.mapsHref}}" style="align-self: flex-start; font-size: 15px; font-weight: 600">Open in OpenStreetMap</a>
+        </div>
+
+        <dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{s.facts}}" as="f" hint-placeholder-count="3">
+            <div style="padding: 10px 12px; border-radius: 8px; background: #FFFFFF; border: 1px solid #DAD6CB; display: flex; flex-direction: column; gap: 2px">
+              <dt style="font-size: 13px; font-weight: 600; color: #4F5B54">{{f.k}}</dt>
+              <dd style="margin: 0; font-size: 15px; font-weight: 600">{{f.v}}</dd>
+            </div>
+          </sc-for>
+        </dl>
+
+        <section style="display: flex; flex-direction: column; gap: 6px">
+          <h3 style="margin: 0; font-size: 17px; font-weight: 700">About</h3>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">{{s.descText}}</p>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 8px">
+          <h3 style="margin: 0; font-size: 17px; font-weight: 700">Amenities</h3>
+          <ul style="margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{s.amenities}}" as="a" hint-placeholder-count="4">
+              <li style="list-style: none; display: flex; align-items: center; gap: 6px; font-size: 15px; padding: 6px 10px; border-radius: 999px; background: #E9EFE7; color: #23472F">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                {{a}}
+              </li>
+            </sc-for>
+          </ul>
+        </section>
+      </sc-if>
+    </aside>
+
+    <section aria-label="Map of parks" style="flex: 999 1 480px; min-height: 360px; position: relative; overflow: hidden; background: #E4E8DF">
+      <svg aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%">
+        <path d="M0 0 L14 0 C18 20 10 40 16 60 C20 75 12 88 18 100 L0 100 Z" fill="#B9D3DC"></path>
+        <path d="M18 100 C30 92 45 95 60 90 C75 86 88 92 100 88 L100 100 Z" fill="#B9D3DC"></path>
+        <path d="M40 0 C38 30 44 60 36 100" stroke="#FFFFFF" stroke-width="0.8" fill="none"></path>
+        <path d="M14 30 C40 34 70 26 100 32" stroke="#FFFFFF" stroke-width="0.8" fill="none"></path>
+        <path d="M16 62 C45 58 70 66 100 58" stroke="#FFFFFF" stroke-width="0.8" fill="none"></path>
+        <path d="M70 0 C66 40 74 70 68 92" stroke="#FFFFFF" stroke-width="0.6" fill="none"></path>
+        <ellipse cx="34" cy="68" rx="6" ry="5" fill="#CFE0C3"></ellipse>
+        <ellipse cx="38" cy="22" rx="3" ry="9" fill="#CFE0C3"></ellipse>
+        <ellipse cx="78" cy="42" rx="5" ry="4" fill="#CFE0C3"></ellipse>
+      </svg>
+      <div style="position: absolute; top: 14px; left: 14px; display: flex; flex-direction: column; border: 1px solid #B8B3A6; border-radius: 6px; overflow: hidden; background: #FFFFFF">
+        <button type="button" class="btn" aria-label="Zoom in" style="width: 44px; height: 44px; border: 0; border-bottom: 1px solid #DAD6CB; background: #FFFFFF; font-size: 22px; color: #1B2620; cursor: pointer">+</button>
+        <button type="button" class="btn" aria-label="Zoom out" style="width: 44px; height: 44px; border: 0; background: #FFFFFF; font-size: 22px; color: #1B2620; cursor: pointer">−</button>
+      </div>
+      <sc-for list="{{parks}}" as="p" hint-placeholder-count="12">
+        <button type="button" class="marker" aria-label="{{p.markerLabel}}" onClick="{{p.select}}" style="position: absolute; left: {{p.left}}; top: {{p.top}}; transform: translate(-50%, -50%); width: {{p.size}}; height: {{p.size}}; border-radius: 50%; border: 3px solid #FFFFFF; background: {{p.bg}}; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer; z-index: {{p.z}}">{{p.num}}</button>
+      </sc-for>
+      <div style="position: absolute; right: 0; bottom: 0; padding: 3px 8px; background: rgba(255,255,255,0.85); font-size: 12px; color: #1B2620">Leaflet | © OpenStreetMap contributors</div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+const PARKS = [
+  {id:'cedar-hill-nature-preserve',name:'Cedar Hill Nature Preserve',description:'Protected woodland with 4 miles of marked hiking trails and a birding blind overlooking a restored wetland.',address:'Cedar Hill Rd',lat:40.7128,lng:-74.006,amenities:['trails','wildlife-viewing','parking'],hours:'Dawn to dusk',images:0,acreage:212,rating:null},
+  {id:'central-plaza-green',name:'Central Plaza Green',description:'An urban pocket park and event lawn ringed by food vendors, with free public WiFi and frequent weekend markets.',address:'1 Plaza Way',lat:40.7549,lng:-73.984,amenities:['event-lawn','wifi','restrooms','food-vendors','accessible-paths'],hours:'24 hours',images:1,acreage:6,rating:4.0},
+  {id:'east-ridge-trailhead',name:'East Ridge Trailhead',description:'Gateway to a 9-mile ridgeline trail network with panoramic overlooks. Trails range from easy to strenuous.',address:'Ridge Rd',lat:40.8501,lng:-73.8662,amenities:['trails','parking','wildlife-viewing'],hours:'Dawn to dusk',images:0,acreage:640,rating:4.9},
+  {id:'highland-dog-park',name:'Highland Dog Park',description:'Fully fenced off-leash dog park with separate small-dog and large-dog areas, water fountains, and shade structures.',address:null,lat:40.6789,lng:-73.9442,amenities:['dog-run','restrooms','parking','water-fountain'],hours:'6:00 AM - 9:00 PM',images:1,acreage:5,rating:4.8},
+  {id:'hillcrest-skate-park',name:'Hillcrest Skate Park',description:'Concrete skate park with bowls, rails, and a street course. Lit for evening use.',address:'Hillcrest Ave',lat:40.6934,lng:-73.9876,amenities:['skate-park','restrooms','lighting'],hours:'8:00 AM - 10:00 PM',images:1,acreage:2,rating:3.9},
+  {id:'lakeshore-point',name:'Lakeshore Point',description:'Small waterfront park with a fishing pier, kayak launch, and a handful of picnic tables. Quiet on weekday mornings.',address:'Shore Pkwy',lat:40.5795,lng:-73.9707,amenities:['waterfront','fishing','kayak-launch','picnic-areas','parking'],hours:'Dawn to dusk',images:1,acreage:18,rating:4.3},
+  {id:'old-mill-botanical-garden',name:'Old Mill Botanical Garden',description:null,address:'12 Old Mill Ln',lat:40.6215,lng:-74.0776,amenities:['gardens','restrooms','cafe','gift-shop','accessible-paths'],hours:'9:00 AM - 5:00 PM',images:2,acreage:34,rating:4.6},
+  {id:'prospect-park',name:'Prospect Park',description:"A 526-acre park in the heart of Brooklyn with meadows, woodlands, a lake, and the borough's only forest. Designed by Olmsted and Vaux after they completed Central Park.",address:'Brooklyn, NY 11225',lat:40.6602,lng:-73.969,amenities:['playground','dog-run','trails','restrooms','parking','lake','picnic-areas'],hours:'6:00 AM - 1:00 AM',images:2,acreage:526,rating:4.7},
+  {id:'riverside-commons',name:'Riverside Commons',description:'A narrow riverfront greenway popular with runners and cyclists, with unobstructed sunset views over the water.',address:'Riverside Dr, New York, NY 10024',lat:40.8009,lng:-73.9722,amenities:['trails','restrooms','waterfront','bike-path'],hours:'6:00 AM - 10:00 PM',images:1,acreage:91,rating:4.4},
+  {id:'sunset-playground',name:'Sunset Playground',description:'A compact neighborhood playground with shaded seating, a splash pad open in summer, and a small basketball court.',address:'44th St & 7th Ave',lat:40.6452,lng:-74.0121,amenities:['playground','splash-pad','basketball','restrooms'],hours:'8:00 AM - 8:00 PM',images:1,acreage:3,rating:4.1},
+  {id:'veterans-memorial-field',name:'Veterans Memorial Field',description:'Community sports complex with baseball diamonds, soccer fields, and a walking loop. Hosts local league play on weekends.',address:'Memorial Dr, Queens, NY 11367',lat:40.7282,lng:-73.7949,amenities:['sports-fields','trails','restrooms','parking','playground'],hours:'7:00 AM - 11:00 PM',images:1,acreage:47,rating:4.2},
+  {id:'willow-creek-wetlands',name:'Willow Creek Wetlands',description:'Boardwalk trails wind through a protected tidal wetland. Interpretive signage explains the ecosystem.',address:'Creek Rd',lat:40.6001,lng:-74.0899,amenities:['boardwalk','wildlife-viewing','trails','accessible-paths'],hours:'Dawn to dusk',images:1,acreage:78,rating:4.5}
+];
+const B = {minLat:40.5795,maxLat:40.8501,minLng:-74.0899,maxLng:-73.7949};
+const label = (a) => a.charAt(0).toUpperCase() + a.slice(1).replace(/-/g, ' ');
+const EMPTY = {name:'',addressText:'',mapsHref:'#',facts:[],descText:'',amenities:[],hasImages:false,noImages:false,photoText:''};
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { selectedId: null };
+  }
+  renderVals() {
+    const sel = this.state ? this.state.selectedId : null;
+    const parks = PARKS.map((p, i) => {
+      const isSel = p.id === sel;
+      const chips = p.amenities.slice(0, 3).map(label);
+      if (p.amenities.length > 3) chips.push('+' + (p.amenities.length - 3) + ' more');
+      return {
+        id: p.id,
+        num: i + 1,
+        name: p.name,
+        addressText: p.address || 'Address not listed',
+        chips: chips,
+        markerLabel: (i + 1) + '. ' + p.name + ' – view details',
+        left: (8 + 84 * (p.lng - B.minLng) / (B.maxLng - B.minLng)).toFixed(1) + '%',
+        top: (8 + 84 * (B.maxLat - p.lat) / (B.maxLat - B.minLat)).toFixed(1) + '%',
+        size: isSel ? '44px' : '34px',
+        bg: isSel ? '#B45309' : '#1E5B3F',
+        z: isSel ? 3 : 1,
+        select: () => this.setState({ selectedId: p.id })
+      };
+    });
+    const raw = PARKS.find((p) => p.id === sel);
+    let s = EMPTY;
+    if (raw) {
+      s = {
+        name: raw.name,
+        addressText: raw.address || 'Address not listed',
+        mapsHref: 'https://www.openstreetmap.org/?mlat=' + raw.lat + '&mlon=' + raw.lng + '#map=16/' + raw.lat + '/' + raw.lng,
+        facts: [
+          { k: 'Hours', v: raw.hours || 'Not listed' },
+          { k: 'Size', v: raw.acreage != null ? raw.acreage + ' acres' : 'Not listed' },
+          { k: 'Rating', v: raw.rating != null ? raw.rating.toFixed(1) + ' / 5' : 'Not yet rated' }
+        ],
+        descText: raw.description || 'No description has been provided for this park.',
+        amenities: raw.amenities.map(label),
+        hasImages: raw.images > 0,
+        noImages: raw.images === 0,
+        photoText: 'Photo 1 of ' + raw.images
+      };
+    }
+    return {
+      parks: parks,
+      count: parks.length,
+      showList: !raw,
+      showDetails: !!raw,
+      s: s,
+      back: () => this.setState({ selectedId: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

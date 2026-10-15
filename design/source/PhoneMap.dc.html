@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Find a Park – phone map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1E5B3F}a:hover{color:#123826}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; background: #F6F4EE; color: #1B2620; font-family: 'Public Sans', 'Segoe UI', system-ui, sans-serif">
+  <header style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #1E5B3F; color: #FFFFFF">
+    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"></path><path d="M12 16 6 16 12 3 18 16Z"></path></svg>
+    <div style="display: flex; flex-direction: column">
+      <span style="font-size: 18px; font-weight: 800">Find a Park</span>
+      <span style="font-size: 13px; color: #D7E8DD">12 parks · New York City area</span>
+    </div>
+  </header>
+
+  <div role="group" aria-label="View" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 12px 16px; padding: 4px; border-radius: 10px; background: #E6E2D8">
+    <button type="button" aria-pressed="false" style="min-height: 44px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 15px; font-weight: 600; color: #3F4A44">List</button>
+    <button type="button" aria-pressed="true" style="min-height: 44px; border: 0; border-radius: 8px; background: #FFFFFF; font: inherit; font-size: 15px; font-weight: 700; color: #1B2620; box-shadow: 0 1px 2px rgba(0,0,0,0.12)">Map</button>
+  </div>
+
+  <section aria-label="Map of parks" style="flex: 1; position: relative; overflow: hidden; background: #E4E8DF">
+    <svg aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%">
+      <path d="M0 0 L14 0 C18 20 10 40 16 60 C20 75 12 88 18 100 L0 100 Z" fill="#B9D3DC"></path>
+      <path d="M18 100 C30 92 45 95 60 90 C75 86 88 92 100 88 L100 100 Z" fill="#B9D3DC"></path>
+      <path d="M40 0 C38 30 44 60 36 100" stroke="#FFFFFF" stroke-width="0.8" fill="none"></path>
+      <path d="M14 30 C40 34 70 26 100 32" stroke="#FFFFFF" stroke-width="0.8" fill="none"></path>
+      <path d="M16 62 C45 58 70 66 100 58" stroke="#FFFFFF" stroke-width="0.8" fill="none"></path>
+      <path d="M70 0 C66 40 74 70 68 92" stroke="#FFFFFF" stroke-width="0.6" fill="none"></path>
+      <ellipse cx="34" cy="68" rx="6" ry="5" fill="#CFE0C3"></ellipse>
+      <ellipse cx="38" cy="22" rx="3" ry="9" fill="#CFE0C3"></ellipse>
+    </svg>
+    <div style="position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; border: 1px solid #B8B3A6; border-radius: 6px; overflow: hidden; background: #FFFFFF">
+      <button type="button" aria-label="Zoom in" style="width: 44px; height: 44px; border: 0; border-bottom: 1px solid #DAD6CB; background: #FFFFFF; font-size: 22px; color: #1B2620">+</button>
+      <button type="button" aria-label="Zoom out" style="width: 44px; height: 44px; border: 0; background: #FFFFFF; font-size: 22px; color: #1B2620">−</button>
+    </div>
+    <sc-for list="{{parks}}" as="p" hint-placeholder-count="12">
+      <button type="button" aria-label="{{p.markerLabel}}" style="position: absolute; left: {{p.left}}; top: {{p.top}}; transform: translate(-50%, -50%); width: {{p.size}}; height: {{p.size}}; border-radius: 50%; border: 3px solid #FFFFFF; background: {{p.bg}}; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: {{p.z}}">{{p.num}}</button>
+    </sc-for>
+
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 28px; z-index: 5; box-sizing: border-box; padding: 16px; border-radius: 14px; background: #FFFFFF; box-shadow: 0 6px 24px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 13px; font-weight: 700; color: #8A3F07">Park 8 of 12</span>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800">Prospect Park</h2>
+          <span style="font-size: 15px; color: #4F5B54">Brooklyn, NY 11225</span>
+          <span style="font-size: 15px; color: #4F5B54">Open 6:00 AM - 1:00 AM</span>
+        </div>
+        <button type="button" aria-label="Close park preview" style="flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #F0EDE5; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1B2620" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+        </button>
+      </div>
+      <a href="PhoneDetails.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 10px; background: #1E5B3F; color: #FFFFFF; font-size: 16px; font-weight: 700; text-decoration: none">
+        View park details
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+      </a>
+    </div>
+    <div style="position: absolute; right: 0; bottom: 0; padding: 3px 8px; background: rgba(255,255,255,0.85); font-size: 11px; color: #1B2620">Leaflet | © OpenStreetMap contributors</div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PTS = [
+  ['Cedar Hill Nature Preserve',40.7128,-74.006],['Central Plaza Green',40.7549,-73.984],['East Ridge Trailhead',40.8501,-73.8662],
+  ['Highland Dog Park',40.6789,-73.9442],['Hillcrest Skate Park',40.6934,-73.9876],['Lakeshore Point',40.5795,-73.9707],
+  ['Old Mill Botanical Garden',40.6215,-74.0776],['Prospect Park',40.6602,-73.969],['Riverside Commons',40.8009,-73.9722],
+  ['Sunset Playground',40.6452,-74.0121],['Veterans Memorial Field',40.7282,-73.7949],['Willow Creek Wetlands',40.6001,-74.0899]
+];
+const B = {minLat:40.5795,maxLat:40.8501,minLng:-74.0899,maxLng:-73.7949};
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      parks: PTS.map((p, i) => {
+        const sel = i === 7;
+        return {
+          num: i + 1,
+          markerLabel: (i + 1) + '. ' + p[0],
+          left: (10 + 80 * (p[2] - B.minLng) / (B.maxLng - B.minLng)).toFixed(1) + '%',
+          top: (6 + 58 * (B.maxLat - p[1]) / (B.maxLat - B.minLat)).toFixed(1) + '%',
+          size: sel ? '42px' : '32px',
+          bg: sel ? '#B45309' : '#1E5B3F',
+          z: sel ? 3 : 1
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

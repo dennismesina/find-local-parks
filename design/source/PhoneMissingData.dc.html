@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cedar Hill Nature Preserve – details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1E5B3F}a:hover{color:#123826}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; background: #F6F4EE; color: #1B2620; font-family: 'Public Sans', 'Segoe UI', system-ui, sans-serif">
+  <header style="display: flex; align-items: center; gap: 8px; padding: 8px 8px; background: #1E5B3F; color: #FFFFFF">
+    <a href="PhoneList.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; color: #FFFFFF; font-size: 16px; font-weight: 600; text-decoration: none">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+      All parks
+    </a>
+  </header>
+
+  <div style="display: flex; flex-direction: column; gap: 18px; padding: 16px 0 24px">
+    <div style="margin: 0 16px; height: 120px; border-radius: 10px; border: 2px dashed #C9C4B6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #4F5B54; font-size: 15px">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>
+      No photos for this park yet
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 16px">
+      <h1 style="margin: 0; font-size: 28px; line-height: 1.15; font-weight: 800">Cedar Hill Nature Preserve</h1>
+      <p style="margin: 0; font-size: 16px; color: #4F5B54">Cedar Hill Rd</p>
+      <a href="https://www.openstreetmap.org/?mlat=40.7128&amp;mlon=-74.006" style="align-self: flex-start; display: flex; align-items: center; min-height: 44px; font-size: 16px; font-weight: 600">Open in OpenStreetMap</a>
+    </div>
+
+    <dl style="margin: 0; padding: 0 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <div style="padding: 10px; border-radius: 8px; background: #FFFFFF; border: 1px solid #DAD6CB; display: flex; flex-direction: column; gap: 2px">
+        <dt style="font-size: 13px; font-weight: 600; color: #4F5B54">Hours</dt>
+        <dd style="margin: 0; font-size: 14px; font-weight: 600">Dawn to dusk</dd>
+      </div>
+      <div style="padding: 10px; border-radius: 8px; background: #FFFFFF; border: 1px solid #DAD6CB; display: flex; flex-direction: column; gap: 2px">
+        <dt style="font-size: 13px; font-weight: 600; color: #4F5B54">Size</dt>
+        <dd style="margin: 0; font-size: 14px; font-weight: 600">212 acres</dd>
+      </div>
+      <div style="padding: 10px; border-radius: 8px; background: #F0EDE5; border: 1px dashed #C9C4B6; display: flex; flex-direction: column; gap: 2px">
+        <dt style="font-size: 13px; font-weight: 600; color: #4F5B54">Rating</dt>
+        <dd style="margin: 0; font-size: 14px; font-weight: 500; font-style: italic; color: #3F4A44">Not yet rated</dd>
+      </div>
+    </dl>
+
+    <section style="display: flex; flex-direction: column; gap: 6px; padding: 0 16px">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 700">About</h2>
+      <p style="margin: 0; font-size: 16px; line-height: 1.55">Protected woodland with 4 miles of marked hiking trails and a birding blind overlooking a restored wetland.</p>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 700">Amenities</h2>
+      <ul style="margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{amenities}}" as="a" hint-placeholder-count="3">
+          <li style="list-style: none; display: flex; align-items: center; gap: 6px; font-size: 15px; padding: 6px 10px; border-radius: 999px; background: #E9EFE7; color: #23472F">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            {{a}}
+          </li>
+        </sc-for>
+      </ul>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { amenities: ['Trails', 'Wildlife viewing', 'Parking'] };
+  }
+}
+</script>
+</body>
+</html>

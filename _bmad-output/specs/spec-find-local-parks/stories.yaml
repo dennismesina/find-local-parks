@@ -1,0 +1,58 @@
+- id: "1"
+  title: Scaffold app and park data layer
+  description: >-
+    Vite + React + Tailwind app with a null-safe module that loads and normalizes
+    parks.sample.json per park-data.md, a layout shell with list, map, and details regions,
+    routing at /parks/:id, and bundled park images resolved by a load-time URL transformation.
+    Data-load failure shows an error, not a blank screen.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Read stack.md and park-data.md. Copy requirements/parks.sample.json into the app unchanged.
+    Move design/park-images/*.png into src/assets/park-images/. Keep the app runnable with one
+    install and one start command.
+- id: "2"
+  title: Park list with keyboard selection
+  description: >-
+    CAP-2: every park appears in a list, including ones with missing fields; an item opens
+    details by mouse, touch, and keyboard (Tab, Enter) with a visible focus indicator.
+  spec_checkpoint: true
+  done_checkpoint: true
+- id: "3"
+  title: Park details with missing-data handling
+  description: >-
+    CAP-3: show name, address, description, amenities, hours, images, acreage, and rating;
+    omit or label missing fields, never invent them, and degrade failed images cleanly.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Acceptance must cover every gap listed in park-data.md "Known gaps in the sample".
+    Amenity tokens become readable labels; unknown tokens are humanized, not dropped.
+- id: "4"
+  title: Map of parks synced with selection
+  description: >-
+    CAP-1: react-leaflet map with OpenStreetMap tiles fitted to parks with coordinates; activating
+    a marker opens that park's details, and the list selection highlights its marker.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    No geolocation. Parks without valid lat/lng get no marker but stay in the list.
+    Import Leaflet marker icon assets explicitly (Vite breaks the defaults). Include OSM attribution.
+- id: "5"
+  title: Responsive and accessibility polish with design applied
+  description: >-
+    CAP-4: apply the Claude Design files from design/ and verify list-to-details works at 375px
+    and desktop with no horizontal scroll, visible focus everywhere, and labelled regions.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Follow design/README.md and design/screens/; source/*.dc.html is reference only, not app code.
+- id: "6"
+  title: Tests and submission README
+  description: >-
+    CAP-5: a small Vitest + React Testing Library suite on missing-data rendering and the keyboard
+    list-to-details flow, plus a README with every section the SPEC lists under CAP-5.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    README must also note where the unredacted AI logs live and record the assumptions from SPEC.md.
