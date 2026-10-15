@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useNavigate } from 'react-router'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
 
@@ -384,7 +384,7 @@ describe('Park details', () => {
       ).toBeTruthy()
     }
 
-    expect(document.querySelectorAll('img')).toHaveLength(1)
+    expect(screen.getByRole('article').querySelectorAll('img')).toHaveLength(1)
     expect(osm).toHaveAttribute(
       'href',
       'https://www.openstreetmap.org/?mlat=40.6602&mlon=-73.969#map=16/40.6602/-73.969',
@@ -451,7 +451,7 @@ describe('Park details', () => {
     async (id) => {
       await openDetails(id)
       expect(screen.getByText('No photos for this park yet')).toBeInTheDocument()
-      expect(document.querySelector('img')).toBeNull()
+      expect(screen.getByRole('article').querySelector('img')).toBeNull()
       expect(screen.queryByText(/^Photo 1 of/)).toBeNull()
     },
   )
@@ -460,7 +460,7 @@ describe('Park details', () => {
     await openDetails('prospect-park')
     fireEvent.error(screen.getByRole('img', { name: 'Photo of Prospect Park' }))
     expect(screen.getByText('No photos for this park yet')).toBeInTheDocument()
-    expect(document.querySelector('img')).toBeNull()
+    expect(screen.getByRole('article').querySelector('img')).toBeNull()
     expect(screen.queryByText(/^Photo 1 of/)).toBeNull()
   })
 
@@ -547,5 +547,331 @@ describe('Park details', () => {
     expect(document.activeElement).toBe(
       within(cardFor('Old Mill Botanical Garden')).getByRole('link'),
     )
+  })
+})
+
+// jsdom has no matchMedia: stub it per test. `set` simulates a viewport change.
+function stubViewport(desktop) {
+  const listeners = new Set()
+  const mql = {
+    matches: desktop,
+    media: '(min-width: 768px)',
+    addEventListener: (_type, fn) => listeners.add(fn),
+    removeEventListener: (_type, fn) => listeners.delete(fn),
+  }
+  window.matchMedia = vi.fn(() => mql)
+  return {
+    set(value) {
+      mql.matches = value
+      act(() => listeners.forEach((fn) => fn()))
+    },
+  }
+}
+
+afterEach(() => {
+  delete window.matchMedia
+})
+
+function LocationDisplay() {
+  const location = useLocation()
+  return <p data-testid="location">{location.pathname}</p>
+}
+
+function renderWithLocation(path) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <LocationDisplay />
+      <App />
+    </MemoryRouter>,
+  )
+}
+
+function mapRegion() {
+  return screen.getByRole('region', { name: 'Map of parks' })
+}
+
+const MARKER_NAME = /^\d+\. /
+
+function markerNamed(name) {
+  return within(mapRegion()).getByRole('button', { name: new RegExp(`^\\d+\\. ${name}$`) })
+}
+
+function findMarkerByName(name) {
+  return within(mapRegion()).findByRole('button', { name: new RegExp(`^\\d+\\. ${name}$`) })
+}
+
+describe('Map of parks', () => {
+  it('renders 12 marker buttons named "1. …" to "12. …", none amber, at /', async () => {
+    stubData()
+    renderAt('/')
+    const buttons = await within(mapRegion()).findAllByRole('button', { name: MARKER_NAME })
+    expect(buttons).toHaveLength(12)
+    buttons.forEach((button, i) =>
+      expect(button).toHaveAccessibleName(`${i + 1}. ${SORTED_NAMES[i]}`),
+    )
+    buttons.forEach((button) => expect(button).not.toHaveClass('bg-amber'))
+    expect(within(mapRegion()).getByRole('link', { name: 'OpenStreetMap' })).toBeInTheDocument()
+  })
+
+  it('highlights the park on /parks/:id in amber, larger; the rest stay forest', async () => {
+    stubData()
+    renderAt('/parks/prospect-park')
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    const selected = markerNamed('Prospect Park')
+    expect(selected).toHaveClass('bg-amber', 'size-14')
+    const others = within(mapRegion())
+      .getAllByRole('button', { name: MARKER_NAME })
+      .filter((b) => b !== selected)
+    expect(others).toHaveLength(11)
+    others.forEach((b) => expect(b).toHaveClass('bg-forest'))
+  })
+
+  it('gives a park without coordinates no marker but keeps it in the list', async () => {
+    stubData((data) => {
+      delete data.find((p) => p.id === 'highland-dog-park').location.lng
+    })
+    renderAt('/')
+    await findCards()
+    expect(within(mapRegion()).getAllByRole('button', { name: MARKER_NAME })).toHaveLength(11)
+    expect(within(mapRegion()).queryByRole('button', { name: /Highland Dog Park/ })).toBeNull()
+    expect(cardFor('Highland Dog Park')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['loading', () => vi.fn(() => new Promise(() => {}))],
+    ['error', () => vi.fn().mockResolvedValue({ ok: false, status: 500 })],
+  ])('shows no map while %s', async (state, makeFetch) => {
+    vi.stubGlobal('fetch', makeFetch())
+    const { container } = renderAt('/')
+    if (state === 'error') await screen.findByText(ERROR_TEXT)
+    else expect(screen.getByText('Loading parks…')).toBeInTheDocument()
+    expect(container.querySelector('.leaflet-container')).toBeNull()
+    expect(within(mapRegion()).queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('reaches every marker with Tab, once each, in order', async () => {
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    const buttons = await within(mapRegion()).findAllByRole('button', { name: MARKER_NAME })
+    const reached = []
+    for (let i = 0; i < 60 && reached.length < buttons.length; i++) {
+      await user.tab()
+      if (buttons.includes(document.activeElement)) reached.push(document.activeElement)
+    }
+    expect(reached).toEqual(buttons)
+    buttons.forEach((b) => expect(b).toHaveClass('focus-ring'))
+  })
+
+  it('never calls navigator.geolocation', async () => {
+    const geolocation = {
+      getCurrentPosition: vi.fn(),
+      watchPosition: vi.fn(),
+      clearWatch: vi.fn(),
+    }
+    vi.stubGlobal('navigator', { ...navigator, geolocation })
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    expect(geolocation.getCurrentPosition).not.toHaveBeenCalled()
+    expect(geolocation.watchPosition).not.toHaveBeenCalled()
+  })
+})
+
+describe('Map on desktop (≥ 768px)', () => {
+  it('navigates to /parks/:id when a marker is clicked', async () => {
+    stubViewport(true)
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    const aside = screen.getByRole('complementary', { name: 'Parks' })
+    expect(
+      await within(aside).findByRole('heading', { level: 1, name: 'Prospect Park' }),
+    ).toHaveFocus()
+    expect(screen.getByTestId('location')).toHaveTextContent('/parks/prospect-park')
+    expect(markerNamed('Prospect Park')).toHaveClass('bg-amber')
+    expect(screen.queryByRole('button', { name: 'Close park preview' })).toBeNull()
+  })
+
+  it('navigates to /parks/:id on Enter on a focused marker', async () => {
+    stubViewport(true)
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    const marker = await findMarkerByName('Highland Dog Park')
+    marker.focus()
+    await user.keyboard('{Enter}')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Highland Dog Park' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/parks/highland-dog-park')
+  })
+
+  it('does not push a duplicate history entry for the already-selected marker', async () => {
+    stubViewport(true)
+    stubData()
+    const user = userEvent.setup()
+
+    function BackButton() {
+      const navigate = useNavigate()
+      return (
+        <button type="button" onClick={() => navigate(-1)}>
+          back
+        </button>
+      )
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <LocationDisplay />
+        <BackButton />
+        <App />
+      </MemoryRouter>,
+    )
+    await user.click(await findMarkerByName('Prospect Park'))
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    await user.click(markerNamed('Prospect Park'))
+    expect(screen.getByTestId('location')).toHaveTextContent('/parks/prospect-park')
+
+    await user.click(screen.getByRole('button', { name: 'back' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'All parks' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+  })
+
+  it('treats a missing matchMedia as desktop', async () => {
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    await user.click(await findMarkerByName('Lakeshore Point'))
+    expect(screen.getByTestId('location')).toHaveTextContent('/parks/lakeshore-point')
+  })
+})
+
+describe('Map on phone (< 768px)', () => {
+  it('opens a preview for marker 8 without changing the URL', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+
+    const preview = screen.getByRole('region', { name: 'Prospect Park' })
+    expect(within(preview).getByText('Park 8 of 12')).toBeInTheDocument()
+    expect(
+      within(preview).getByRole('heading', { level: 2, name: 'Prospect Park' }),
+    ).toBeInTheDocument()
+    expect(within(preview).getByText('Brooklyn, NY 11225')).toBeInTheDocument()
+    expect(within(preview).getByText('6:00 AM - 1:00 AM')).toBeInTheDocument()
+    expect(within(preview).getByRole('link', { name: 'View park details' })).toHaveAttribute(
+      'href',
+      '/parks/prospect-park',
+    )
+    expect(
+      within(preview).getByRole('button', { name: 'Close park preview' }),
+    ).toBeInTheDocument()
+    expect(preview).toHaveFocus()
+
+    expect(markerNamed('Prospect Park')).toHaveClass('bg-amber')
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+    expect(screen.getByRole('heading', { level: 1, name: 'All parks' })).toBeInTheDocument()
+  })
+
+  it('gives the preview controls 44px targets and a focus ring', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    expect(screen.getByRole('button', { name: 'Close park preview' })).toHaveClass(
+      'focus-ring',
+      'size-11',
+    )
+    expect(screen.getByRole('link', { name: 'View park details' })).toHaveClass(
+      'focus-ring',
+      'min-h-11',
+    )
+  })
+
+  it('shows "Address not listed" (muted) for Highland Dog Park', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await user.click(await findMarkerByName('Highland Dog Park'))
+    const preview = screen.getByRole('region', { name: 'Highland Dog Park' })
+    expect(within(preview).getByText('Address not listed')).toHaveClass('text-muted')
+    expect(within(preview).getByText('Park 4 of 12')).toBeInTheDocument()
+  })
+
+  it('shows "Hours not listed" for missing hours', async () => {
+    stubViewport(false)
+    stubData((data) => {
+      delete data.find((p) => p.id === 'prospect-park').hours
+    })
+    const user = userEvent.setup()
+    renderAt('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    const preview = screen.getByRole('region', { name: 'Prospect Park' })
+    expect(within(preview).getByText('Hours not listed')).toHaveClass('text-muted')
+  })
+
+  it('"View park details" navigates to /parks/:id and closes the preview', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    await user.click(screen.getByRole('link', { name: 'View park details' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Prospect Park' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/parks/prospect-park')
+    expect(screen.queryByRole('button', { name: 'Close park preview' })).toBeNull()
+  })
+
+  it('"Close park preview" removes the preview and returns focus to the marker', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    await user.click(screen.getByRole('button', { name: 'Close park preview' }))
+    expect(screen.queryByRole('region', { name: 'Prospect Park' })).toBeNull()
+    const marker = markerNamed('Prospect Park')
+    expect(marker).toHaveFocus()
+    expect(marker).not.toHaveClass('bg-amber')
+  })
+
+  it('closes the preview on Escape and returns focus to the marker', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    expect(screen.getByRole('region', { name: 'Prospect Park' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('region', { name: 'Prospect Park' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Close park preview' })).toBeNull()
+    expect(within(mapRegion()).getByRole('button', { name: '8. Prospect Park' })).toHaveFocus()
+  })
+
+  it('clears the preview when the viewport becomes desktop', async () => {
+    const viewport = stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    await user.click(await findMarkerByName('Prospect Park'))
+    expect(screen.getByRole('button', { name: 'Close park preview' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Prospect Park' })).toHaveFocus()
+    viewport.set(true)
+    expect(screen.queryByRole('button', { name: 'Close park preview' })).toBeNull()
+    expect(markerNamed('Prospect Park')).not.toHaveClass('bg-amber')
+    expect(markerNamed('Prospect Park')).toHaveFocus()
+    viewport.set(false)
+    expect(screen.queryByRole('button', { name: 'Close park preview' })).toBeNull()
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
   })
 })

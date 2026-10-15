@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Route, Routes, useParams } from 'react-router'
+import { Link, Route, Routes, useLocation, useMatch, useNavigate, useParams } from 'react-router'
 import ParkDetails from './components/ParkDetails.jsx'
 import ParkList from './components/ParkList.jsx'
+import ParkMap from './components/ParkMap.jsx'
+import ParkPreview from './components/ParkPreview.jsx'
+import { useIsDesktop } from './data/useIsDesktop.js'
 import { useParks } from './data/useParks.js'
 
 const cardClass = 'rounded-[10px] border border-line bg-surface p-4'
@@ -83,6 +86,50 @@ export default function App() {
   // focus can return to its card after browser Back, which carries no state.
   const [lastParkId, setLastParkId] = useState(null)
 
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isDesktop = useIsDesktop()
+  const selectedId = useMatch('/parks/:id')?.params.id ?? null
+  // Phone-only marker preview; cleared on any navigation and when the viewport becomes desktop.
+  const [previewId, setPreviewId] = useState(null)
+  // Marker button to refocus after the preview closes.
+  const [focusMarkerId, setFocusMarkerId] = useState(null)
+  const clearFocusMarkerId = useCallback(() => setFocusMarkerId(null), [])
+
+  useEffect(() => {
+    setPreviewId(null)
+  }, [location.key])
+
+  useEffect(() => {
+    if (isDesktop && previewId) {
+      // Focus may be inside the preview: hand it back to the marker, as closing does.
+      setFocusMarkerId(previewId)
+      setPreviewId(null)
+    }
+  }, [isDesktop, previewId])
+
+  const activePreviewId = isDesktop ? null : previewId
+  const highlightedId = selectedId ?? activePreviewId
+  const previewPark =
+    status === 'ready' && activePreviewId
+      ? (parks.find((park) => park.id === activePreviewId) ?? null)
+      : null
+
+  const activateMarker = useCallback(
+    (id) => {
+      if (isDesktop) {
+        // Re-activating the park already open would push a duplicate history entry.
+        if (id !== selectedId) navigate(`/parks/${id}`)
+      } else setPreviewId(id)
+    },
+    [isDesktop, navigate, selectedId],
+  )
+
+  const closePreview = useCallback(() => {
+    setFocusMarkerId(previewId)
+    setPreviewId(null)
+  }, [previewId])
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-forest px-5 py-4 text-white">
@@ -100,8 +147,27 @@ export default function App() {
             setLastParkId={setLastParkId}
           />
         </aside>
-        <section aria-label="Map of parks" className="flex-1 p-5">
-          <p className="text-muted">Map coming soon.</p>
+        <section aria-label="Map of parks" className="p-5">
+          {status === 'ready' && (
+            <div className="relative isolate h-[480px]">
+              <ParkMap
+                parks={parks}
+                selectedId={highlightedId}
+                isDesktop={isDesktop}
+                onActivate={activateMarker}
+                focusId={focusMarkerId}
+                onFocused={clearFocusMarkerId}
+              />
+              {previewPark && (
+                <ParkPreview
+                  key={previewPark.id}
+                  park={previewPark}
+                  total={parks.length}
+                  onClose={closePreview}
+                />
+              )}
+            </div>
+          )}
         </section>
       </main>
     </div>
