@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Design tokens from design/README.md */
+@theme {
+  --color-paper: #F6F4EE;
+  --color-surface: #FFFFFF;
+  --color-line: #DAD6CB;
+  --color-ink: #1B2620;
+  --color-muted: #4F5B54;
+  --color-forest: #1E5B3F;
+  --color-forest-dark: #123826;
+  --color-tag-bg: #E9EFE7;
+  --color-tag-fg: #23472F;
+  --color-amber: #B45309;
+  --color-missing-bg: #F0EDE5;
+  --color-missing-line: #C9C4B6;
+
+  --font-sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+/* Amber focus ring: apply `focus-ring` to every interactive element. */
+@utility focus-ring {
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 3px;
+    outline-color: var(--color-amber);
+    outline-offset: 2px;
+  }
+}
+
+body {
+  @apply bg-paper text-ink font-sans;
+}

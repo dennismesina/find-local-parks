@@ -1,0 +1,59 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 10-14-2026 21:57
+last_updated: 10-14-2026 22:10
+project: find-local-parks
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-1: in-progress
+  1-1-scaffold-app-and-park-data-layer: review
+  1-2-park-list-with-keyboard-selection: backlog
+  1-3-park-details-with-missing-data-handling: backlog
+  1-4-map-of-parks-synced-with-selection: backlog
+  1-5-responsive-and-accessibility-polish-with-design-applied: backlog
+  1-6-tests-and-submission-readme: backlog
+  epic-1-retrospective: optional
+# Readiness-gate concerns (10-14-2026), accepted to proceed; resolve during the named story.
+action_items:
+  - epic: 1
+    action: "Story 1.1: stack.md says static import, but the AC needs a load-failure/retry state. Choose a load mechanism that can fail (e.g. fetch from public/ or dynamic import()) and record it in the README"
+    owner: "dev"
+    status: open
+  - epic: 1
+    action: "Story 1.1: the router library is not named in stack.md; choose one (React Router is the default) and record the decision"
+    owner: "dev"
+    status: open
+  - epic: 1
+    action: "Story 1.2: the focus-return-to-card AC depends on Story 1.3's back control. Verify it via browser Back in 1.2 and re-verify it with the All parks button in 1.3"
+    owner: "dev"
+    status: open
