@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, TileLayer } from 'react-leaflet'
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
 // No-coordinates fallback: a fixed view over New York City.
 const NYC_CENTER = [40.7128, -74.006]
 const NYC_ZOOM = 11
+const BOUNDS_OPTIONS = { padding: [32, 32], maxZoom: 15 }
 
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const TILE_ATTRIBUTION =
@@ -46,6 +47,36 @@ function markerIcon(park, selected) {
 }
 
 /**
+ * Keeps Leaflet's size in step with its container. Leaflet measures once, so a container that
+ * was `display:none` (phone List tab) or changed size (resize, tab switch) shows grey tiles until
+ * `invalidateSize()` runs. Zero-size observations (pane hidden) are skipped so the view survives
+ * hide/show. If the map was created while hidden, the initial view is applied once it first gets a size.
+ */
+function ResizeToContainer({ fitInitialView }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const container = map.getContainer()
+    const start = map.getSize()
+    let everSized = start.x > 0 && start.y > 0
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[entries.length - 1]?.contentRect
+      if (!rect || rect.width === 0 || rect.height === 0) return
+      map.invalidateSize()
+      if (!everSized) {
+        everSized = true
+        fitInitialView(map)
+      }
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [map, fitInitialView])
+
+  return null
+}
+
+/**
  * OpenStreetMap map of the parks that have coordinates. Each marker is a single focusable
  * `<button>` named "N. Park name"; the highlighted park's marker is amber and larger.
  * `isDesktop` is part of the props contract but the map renders the same at every width; the
@@ -79,14 +110,27 @@ export default function ParkMap({ parks, selectedId, onActivate, focusId, onFocu
     onFocused?.()
   }, [focusId, selectedId, onFocused])
 
-  const viewProps = bounds
-    ? { bounds, boundsOptions: { padding: [32, 32], maxZoom: 15 } }
-    : { center: NYC_CENTER, zoom: NYC_ZOOM }
+  const viewProps = useMemo(
+    () =>
+      bounds
+        ? { bounds, boundsOptions: BOUNDS_OPTIONS }
+        : { center: NYC_CENTER, zoom: NYC_ZOOM },
+    [bounds],
+  )
+
+  const fitInitialView = useCallback(
+    (map) => {
+      if (viewProps.bounds) map.fitBounds(viewProps.bounds, viewProps.boundsOptions)
+      else map.setView(viewProps.center, viewProps.zoom)
+    },
+    [viewProps],
+  )
 
   return (
     <div ref={wrapperRef} className="h-full w-full">
-      <MapContainer {...viewProps} className="h-full w-full rounded-[10px]">
+      <MapContainer {...viewProps} className="h-full w-full">
         <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+        <ResizeToContainer fitInitialView={fitInitialView} />
         {mapped.map((park) => {
           const selected = park.id === selectedId
           const icon = icons.get(park.id)

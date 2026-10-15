@@ -15,11 +15,11 @@ function ParkCard({ park, linkRef }) {
       <Link
         ref={linkRef}
         to={`/parks/${park.id}`}
-        className="focus-ring flex min-h-11 items-start gap-3 rounded-[10px] border border-line bg-surface p-4 hover:border-forest"
+        className="focus-ring flex min-h-11 items-start gap-3 rounded-[10px] border border-line bg-surface p-3.5 hover:border-forest"
       >
         <span
           aria-hidden="true"
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-forest text-sm font-bold text-white"
+          className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-forest text-sm font-bold text-white"
         >
           {park.number}
         </span>
@@ -27,15 +27,15 @@ function ParkCard({ park, linkRef }) {
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-bold">{park.name}</span>{' '}
           {park.address ? (
-            <span className="block text-muted">{park.address}</span>
+            <span className="mt-1 block text-[15px] text-muted">{park.address}</span>
           ) : (
-            <span className="block text-muted">Address not listed</span>
+            <span className="mt-1 block text-[15px] text-muted">Address not listed</span>
           )}{' '}
           {tags.length > 0 && (
-            <span data-testid="park-tags" className="mt-2 flex flex-wrap gap-2">
+            <span data-testid="park-tags" className="mt-2 flex flex-wrap gap-1.5">
               {tags.map((label, index) => (
                 <Fragment key={`${index}-${label}`}>
-                  <span className="rounded-full bg-tag-bg px-2.5 py-0.5 text-sm text-tag-fg">
+                  <span className="rounded-full bg-tag-bg px-2 py-[3px] text-[13px] text-tag-fg">
                     {label}
                   </span>{' '}
                 </Fragment>
@@ -75,9 +75,9 @@ export default function ParkList({ parks, focusParkId, onFocusUsed }) {
 
   return (
     <div>
-      <h1 className="text-lg font-bold">All parks</h1>
+      <h1 className="text-[22px] font-extrabold">All parks</h1>
       <p className="mt-1 text-muted">Choose a park to see hours, amenities and directions.</p>
-      <ul className="mt-4 flex flex-col gap-3">
+      <ul className="mt-4 flex flex-col gap-2.5">
         {parks.map((park) => (
           <ParkCard
             key={park.id}

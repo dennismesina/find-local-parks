@@ -64,7 +64,7 @@ function FactTile({ label, value }) {
         missing ? 'border-dashed border-missing-line bg-missing-bg' : 'border-line bg-surface'
       }`}
     >
-      <dt className="text-sm text-muted">{label}</dt>
+      <dt className="text-[13px] text-muted">{label}</dt>
       <dd className={missing ? 'italic text-muted' : 'font-semibold'}>{text}</dd>
     </div>
   )
@@ -75,7 +75,9 @@ export default function ParkDetails({ park }) {
   const headingRef = useRef(null)
 
   // Opening details (or moving to another park) puts focus on the heading.
+  // Opening details also names the tab after the park.
   useEffect(() => {
+    document.title = `${park.name} · Find a Park`
     headingRef.current?.focus()
   }, [park.id])
 
@@ -86,7 +88,7 @@ export default function ParkDetails({ park }) {
     <article>
       <Link
         to="/"
-        className="focus-ring inline-flex min-h-11 min-w-11 items-center gap-1 rounded-lg border border-line bg-surface px-3 font-semibold text-forest hover:border-forest"
+        className="focus-ring hidden min-h-11 min-w-11 items-center gap-1 rounded-lg border border-line bg-surface px-3 font-semibold text-forest hover:border-forest md:inline-flex"
       >
         <svg
           aria-hidden="true"
@@ -101,14 +103,14 @@ export default function ParkDetails({ park }) {
         All parks
       </Link>
 
-      <div className="mt-4">
+      <div className="md:mt-4">
         <PhotoArea key={park.id} park={park} />
       </div>
 
       <h1
         ref={headingRef}
         tabIndex={-1}
-        className="mt-4 text-[28px] leading-tight font-extrabold"
+        className="focus-ring mt-4 text-[28px] leading-tight font-extrabold"
       >
         {park.name}
       </h1>

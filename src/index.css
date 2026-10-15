@@ -14,6 +14,7 @@
   --color-amber: #B45309;
   --color-missing-bg: #F0EDE5;
   --color-missing-line: #C9C4B6;
+  --color-toggle-bg: #E6E2D8;
 
   --font-sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
 }
@@ -30,4 +31,26 @@
 
 body {
   @apply bg-paper text-ink font-sans;
+  font-size: 0.9375rem;
+}
+
+/* Leaflet's own controls: 44×44 zoom buttons and the amber focus ring.
+   Extra specificity beats leaflet.css (`.leaflet-touch .leaflet-bar a`). */
+.leaflet-container .leaflet-bar.leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+
+.leaflet-container:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: -3px;
+}
+
+.leaflet-container .leaflet-control-zoom a:focus-visible,
+.leaflet-container .leaflet-control-attribution a:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
 }

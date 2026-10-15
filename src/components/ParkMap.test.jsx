@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import L from 'leaflet'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { normalizeParks } from '../data/parks.js'
 import ParkMap from './ParkMap.jsx'
@@ -24,7 +25,10 @@ function markerFor(name) {
   return screen.getByRole('button', { name: new RegExp(`^\\d+\\. ${name}$`) })
 }
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 
 describe('ParkMap', () => {
   it('renders one numbered marker button per park, named "N. Park name", none amber', () => {
@@ -154,5 +158,53 @@ describe('ParkMap', () => {
     expect(
       screen.getByRole('button', { name: /Prospect <b>Park<\/b>$/ }),
     ).toBeInTheDocument()
+  })
+
+  it('renders edge to edge (no rounded corners)', () => {
+    const { container } = render(
+      <ParkMap parks={parksFrom()} selectedId={null} onActivate={() => {}} />,
+    )
+    expect(container.querySelector('.leaflet-container').className).not.toMatch(/rounded/)
+  })
+
+  it('calls invalidateSize when the container resizes, and fits the view once it first has a size', () => {
+    const observers = []
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback) {
+          this.callback = callback
+          this.observe = vi.fn()
+          this.disconnect = vi.fn()
+          observers.push(this)
+        }
+      },
+    )
+    const invalidate = vi.spyOn(L.Map.prototype, 'invalidateSize')
+    const fit = vi.spyOn(L.Map.prototype, 'fitBounds')
+    const { container, unmount } = render(
+      <ParkMap parks={parksFrom()} selectedId={null} onActivate={() => {}} />,
+    )
+    expect(observers).toHaveLength(1)
+    const observer = observers[0]
+    expect(observer.observe).toHaveBeenCalledWith(container.querySelector('.leaflet-container'))
+    invalidate.mockClear()
+    fit.mockClear()
+
+    // Hidden pane (display:none): zero size is ignored so the view survives.
+    act(() => observer.callback([{ contentRect: { width: 0, height: 0 } }]))
+    expect(invalidate).not.toHaveBeenCalled()
+
+    // Shown: Leaflet re-measures; jsdom built the map at 0×0, so the initial view is re-fitted once.
+    act(() => observer.callback([{ contentRect: { width: 375, height: 600 } }]))
+    expect(invalidate).toHaveBeenCalledTimes(1)
+    expect(fit).toHaveBeenCalledTimes(1)
+
+    act(() => observer.callback([{ contentRect: { width: 1280, height: 700 } }]))
+    expect(invalidate).toHaveBeenCalledTimes(2)
+    expect(fit).toHaveBeenCalledTimes(1)
+
+    unmount()
+    expect(observer.disconnect).toHaveBeenCalled()
   })
 })

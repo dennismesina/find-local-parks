@@ -46,7 +46,8 @@ describe('App shell', () => {
     expect(await within(aside).findByText(ERROR_TEXT)).toBeInTheDocument()
 
     await user.click(within(aside).getByRole('button', { name: 'Retry' }))
-    expect(await within(aside).findByRole('heading', { name: 'All parks' })).toBeInTheDocument()
+    expect(await within(aside).findByRole('list')).toBeInTheDocument()
+    expect(within(aside).getByRole('heading', { level: 1, name: 'All parks' })).toBeInTheDocument()
     expect(screen.getByText('12 parks')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
@@ -65,7 +66,8 @@ describe('App shell', () => {
     expect(screen.getByRole('main')).toBeInTheDocument()
     expect(screen.getByRole('complementary', { name: 'Parks' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Map of parks' })).toBeInTheDocument()
-    expect(await screen.findByRole('heading', { level: 1, name: 'All parks' })).toBeInTheDocument()
+    expect(await within(screen.getByRole('complementary')).findByRole('list')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'All parks' })).toBeInTheDocument()
   })
 
   it('shows the park name on /parks/:id', async () => {
@@ -116,7 +118,7 @@ describe('App shell', () => {
         <App />
       </MemoryRouter>,
     )
-    expect(await screen.findByRole('heading', { name: 'All parks' })).toBeInTheDocument()
+    await screen.findByRole('list')
     await user.click(screen.getByRole('button', { name: 'go' }))
     expect(await screen.findByRole('heading', { name: 'Prospect Park' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'back' }))
@@ -252,6 +254,8 @@ describe('Park list', () => {
     const user = userEvent.setup()
     renderAt('/')
     const cards = await findCards()
+    // Start after the List / Map toggle, which precedes the list in DOM order.
+    screen.getByRole('button', { name: 'Map' }).focus()
     for (const card of cards) {
       await user.tab()
       expect(document.activeElement).toBe(within(card).getByRole('link'))
@@ -263,6 +267,7 @@ describe('Park list', () => {
     const user = userEvent.setup()
     renderAt('/')
     await findCards()
+    screen.getByRole('button', { name: 'Map' }).focus()
     await user.tab()
     expect(document.activeElement).toHaveAttribute('href', '/parks/cedar-hill-nature-preserve')
     await user.keyboard('{Enter}')
@@ -341,7 +346,8 @@ function stubData(mutate) {
 async function openDetails(id, mutate) {
   stubData(mutate)
   renderAt(`/parks/${id}`)
-  return screen.findByRole('heading', { level: 1 })
+  await screen.findByRole('article')
+  return screen.getByRole('heading', { level: 1 })
 }
 
 function tile(label) {
@@ -368,7 +374,9 @@ describe('Park details', () => {
     const heading = await openDetails('prospect-park')
     expect(heading).toHaveTextContent('Prospect Park')
 
-    const back = screen.getByRole('link', { name: 'All parks' })
+    const back = within(screen.getByRole('complementary', { name: 'Parks' })).getByRole('link', {
+      name: 'All parks',
+    })
     const img = screen.getByRole('img', { name: 'Photo of Prospect Park' })
     const photoLabel = screen.getByText('Photo 1 of 2')
     const address = screen.getByText('Brooklyn, NY 11225')
@@ -412,7 +420,9 @@ describe('Park details', () => {
 
   it('gives the back and OSM links a focus ring and a 44px target', async () => {
     await openDetails('prospect-park')
-    const back = screen.getByRole('link', { name: 'All parks' })
+    const back = within(screen.getByRole('complementary', { name: 'Parks' })).getByRole('link', {
+      name: 'All parks',
+    })
     const osm = screen.getByRole('link', { name: /^Open in OpenStreetMap/ })
     expect(back).toHaveAttribute('href', '/')
     for (const link of [back, osm]) {
@@ -522,7 +532,8 @@ describe('Park details', () => {
     for (const raw of sample) {
       stubData()
       const { unmount } = renderAt(`/parks/${raw.id}`)
-      const heading = await screen.findByRole('heading', { level: 1 })
+      await screen.findByRole('article')
+      const heading = screen.getByRole('heading', { level: 1 })
       expect(heading).toHaveTextContent(raw.name)
       expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
       expect(screen.getByRole('article').textContent).not.toMatch(/null|undefined|NaN/)
@@ -541,7 +552,11 @@ describe('Park details', () => {
     ).toHaveFocus()
 
     await user.tab({ shift: true })
-    expect(screen.getByRole('link', { name: 'All parks' })).toHaveFocus()
+    expect(
+      within(screen.getByRole('complementary', { name: 'Parks' })).getByRole('link', {
+        name: 'All parks',
+      }),
+    ).toHaveFocus()
     await user.keyboard('{Enter}')
     await findCards()
     expect(document.activeElement).toBe(
@@ -733,6 +748,8 @@ describe('Map on desktop (≥ 768px)', () => {
     )
     await user.click(await findMarkerByName('Prospect Park'))
     await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    // Outside Leaflet's 200ms synthetic-dblclick window (it zooms, which jsdom cannot measure).
+    await new Promise((resolve) => setTimeout(resolve, 250))
     await user.click(markerNamed('Prospect Park'))
     expect(screen.getByTestId('location')).toHaveTextContent('/parks/prospect-park')
 
@@ -873,5 +890,334 @@ describe('Map on phone (< 768px)', () => {
     viewport.set(false)
     expect(screen.queryByRole('button', { name: 'Close park preview' })).toBeNull()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+  })
+})
+
+// ---- Story 1.5: responsive shell ----
+
+function asideRegion() {
+  return screen.getByRole('complementary', { name: 'Parks' })
+}
+
+function headerBackLink() {
+  return within(screen.getByRole('banner')).getByRole('link', { name: 'All parks' })
+}
+
+function renderWithBack(path) {
+  function BackButton() {
+    const navigate = useNavigate()
+    return (
+      <button type="button" onClick={() => navigate(-1)}>
+        history back
+      </button>
+    )
+  }
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <LocationDisplay />
+      <BackButton />
+      <App />
+    </MemoryRouter>,
+  )
+}
+
+describe('Phone List / Map toggle', () => {
+  it('defaults to List: List pressed, Map not, map pane hidden', async () => {
+    stubViewport(false)
+    stubData()
+    renderAt('/')
+    await findCards()
+    const group = screen.getByRole('group', { name: 'View' })
+    expect(group).toHaveClass('md:hidden')
+    const list = within(group).getByRole('button', { name: 'List' })
+    const map = within(group).getByRole('button', { name: 'Map' })
+    for (const button of [list, map]) {
+      expect(button).toHaveAttribute('type', 'button')
+      expect(button).toHaveClass('focus-ring', 'min-h-11')
+    }
+    expect(list).toHaveAttribute('aria-pressed', 'true')
+    expect(map).toHaveAttribute('aria-pressed', 'false')
+    expect(asideRegion()).not.toHaveClass('hidden')
+    expect(mapRegion()).toHaveClass('hidden', 'md:block')
+  })
+
+  it('pressing Map shows the map pane and hides the list pane', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    await user.click(screen.getByRole('button', { name: 'Map' }))
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'false')
+    expect(asideRegion()).toHaveClass('hidden', 'md:block')
+    expect(mapRegion()).not.toHaveClass('hidden')
+  })
+
+  it('switching back to List closes an open preview', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    await user.click(screen.getByRole('button', { name: 'Map' }))
+    await user.click(markerNamed('Prospect Park'))
+    expect(screen.getByRole('region', { name: 'Prospect Park' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    expect(screen.queryByRole('region', { name: 'Prospect Park' })).toBeNull()
+    expect(markerNamed('Prospect Park')).not.toHaveClass('bg-amber')
+    expect(mapRegion()).toHaveClass('hidden')
+  })
+
+  it('has no toggle and hides the map on details', async () => {
+    stubViewport(false)
+    await openDetails('prospect-park')
+    expect(screen.queryByRole('group', { name: 'View' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'List' })).toBeNull()
+    expect(mapRegion()).toHaveClass('hidden', 'md:block')
+    expect(asideRegion()).not.toHaveClass('hidden')
+  })
+
+  it('keeps both panes and the map visible on desktop', async () => {
+    stubViewport(true)
+    stubData()
+    renderAt('/')
+    await findCards()
+    expect(asideRegion()).toHaveClass('md:w-[400px]', 'md:overflow-y-auto')
+    expect(asideRegion()).not.toHaveClass('hidden')
+    // The toggle is CSS-hidden at desktop width.
+    expect(screen.getByRole('group', { name: 'View' })).toHaveClass('md:hidden')
+  })
+})
+
+describe('Toggle outside the ready state', () => {
+  it.each([
+    ['loading', () => vi.fn(() => new Promise(() => {}))],
+    ['error', () => vi.fn().mockResolvedValue({ ok: false, status: 500 })],
+  ])('is absent while %s, and the aside stays visible', async (state, makeFetch) => {
+    stubViewport(false)
+    vi.stubGlobal('fetch', makeFetch())
+    renderAt('/')
+    if (state === 'error') await screen.findByText(ERROR_TEXT)
+    else expect(screen.getByText('Loading parks…')).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'View' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Map' })).toBeNull()
+    expect(asideRegion()).not.toHaveClass('hidden')
+  })
+})
+
+describe('Resize from the phone Map tab to desktop', () => {
+  it('shows both panes and returns focus to the card from details', async () => {
+    const viewport = stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    await user.click(screen.getByRole('button', { name: 'Map' }))
+    viewport.set(true)
+    // On desktop the stale Map tab is ignored by behaviour; CSS shows both panes (md:block).
+    expect(mapRegion()).not.toHaveClass('hidden')
+    expect(asideRegion()).toHaveClass('md:block')
+    await user.click(within(cardFor('Riverside Commons')).getByRole('link'))
+    await screen.findByRole('heading', { level: 1, name: 'Riverside Commons' })
+    expect(asideRegion()).not.toHaveClass('hidden')
+    await user.click(within(asideRegion()).getByRole('link', { name: 'All parks' }))
+    await findCards()
+    expect(document.activeElement).toBe(within(cardFor('Riverside Commons')).getByRole('link'))
+  })
+})
+
+describe('Header', () => {
+  it('shows the app name and park count on the list', async () => {
+    stubData()
+    renderAt('/')
+    await findCards()
+    const header = screen.getByRole('banner')
+    expect(within(header).getByText('Find a Park')).toBeInTheDocument()
+    expect(within(header).getByText('Parks in the New York City area')).toBeInTheDocument()
+    expect(within(header).getByText('12 parks')).toBeInTheDocument()
+    expect(within(header).getByText('12 parks · New York City area')).toBeInTheDocument()
+    expect(within(header).queryByRole('link')).toBeNull()
+    expect(within(header).queryByRole('heading')).toBeNull()
+    expect(within(header).getByText('Find a Park').closest('div.flex-wrap')).not.toHaveClass('hidden')
+  })
+
+  it('shows a phone-only "All parks" link on details', async () => {
+    await openDetails('prospect-park')
+    const link = headerBackLink()
+    expect(link).toHaveAttribute('href', '/')
+    expect(link).toHaveClass('focus-ring', 'min-h-11')
+    expect(link.parentElement).toHaveClass('md:hidden')
+    // The app name and subtitle are phone-hidden on details, shown again at desktop width.
+    const nameBlock = within(screen.getByRole('banner')).getByText('Find a Park').closest('div.flex-wrap')
+    expect(nameBlock).toHaveClass('hidden', 'md:flex')
+    // The sidebar's bordered back link is desktop-only.
+    const sidebarLink = within(asideRegion()).getByRole('link', { name: 'All parks' })
+    expect(sidebarLink).toHaveClass('hidden', 'md:inline-flex')
+  })
+
+  it('the header "All parks" link returns focus to the card', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    await user.click(within(cardFor('Lakeshore Point')).getByRole('link'))
+    await screen.findByRole('heading', { level: 1, name: 'Lakeshore Point' })
+    await user.click(headerBackLink())
+    await findCards()
+    expect(document.activeElement).toBe(within(cardFor('Lakeshore Point')).getByRole('link'))
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('One h1 per view', () => {
+  const expectOneH1 = (name) => {
+    const headings = screen.getAllByRole('heading', { level: 1 })
+    expect(headings).toHaveLength(1)
+    expect(headings[0]).toHaveTextContent(name)
+  }
+
+  it('loading', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    renderAt('/')
+    expect(screen.getByText('Loading parks…')).toBeInTheDocument()
+    expectOneH1('All parks')
+  })
+
+  it('error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+    renderAt('/')
+    await screen.findByText(ERROR_TEXT)
+    expectOneH1('All parks')
+  })
+
+  it('list', async () => {
+    stubData()
+    renderAt('/')
+    await findCards()
+    expectOneH1('All parks')
+  })
+
+  it('details', async () => {
+    await openDetails('highland-dog-park')
+    expectOneH1('Highland Dog Park')
+  })
+
+  it('phone Map tab: a visually hidden "Map of parks" h1; the list h1 is in the hidden aside', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    expect(within(mapRegion()).queryByRole('heading', { level: 1 })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Map' }))
+    const mapHeading = within(mapRegion()).getByRole('heading', { level: 1, name: 'Map of parks' })
+    expect(mapHeading).toHaveClass('sr-only', 'md:hidden')
+    // jsdom applies no CSS: the list h1 is still in the DOM, inside the display:none aside.
+    expect(asideRegion()).toHaveClass('hidden')
+    expect(screen.getAllByRole('heading', { level: 1 }).filter((h) => !asideRegion().contains(h))).toEqual([
+      mapHeading,
+    ])
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    expectOneH1('All parks')
+  })
+
+  it.each(['/parks/nope', '/foo'])('not found at %s', async (path) => {
+    stubData()
+    renderAt(path)
+    await screen.findByRole('heading', { name: 'Park not found' })
+    expectOneH1('Park not found')
+  })
+})
+
+describe('document.title', () => {
+  it('is "Find a Park" on the list and "{name} · Find a Park" on details', async () => {
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    expect(document.title).toBe('Find a Park')
+    await user.click(within(cardFor('Prospect Park')).getByRole('link'))
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    expect(document.title).toBe('Prospect Park · Find a Park')
+    await user.click(within(asideRegion()).getByRole('link', { name: 'All parks' }))
+    await findCards()
+    expect(document.title).toBe('Find a Park')
+  })
+})
+
+describe('Phone Back from details', () => {
+  async function openFromMap(user) {
+    await findCards()
+    await user.click(screen.getByRole('button', { name: 'Map' }))
+    await user.click(markerNamed('Prospect Park'))
+    await user.click(screen.getByRole('link', { name: 'View park details' }))
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    expect(mapRegion()).toHaveClass('hidden')
+  }
+
+  function expectMapTabWithMarkerFocus() {
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
+    expect(mapRegion()).not.toHaveClass('hidden')
+    expect(asideRegion()).toHaveClass('hidden')
+    expect(markerNamed('Prospect Park')).toHaveFocus()
+  }
+
+  it('via the header link returns to the Map tab with focus on the marker', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderWithLocation('/')
+    await openFromMap(user)
+    await user.click(headerBackLink())
+    await findCards()
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+    expectMapTabWithMarkerFocus()
+  })
+
+  it('via browser Back returns to the Map tab with focus on the marker', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderWithBack('/')
+    await openFromMap(user)
+    await user.click(screen.getByRole('button', { name: 'history back' }))
+    await findCards()
+    expectMapTabWithMarkerFocus()
+    // The id was consumed: no card takes focus later.
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'List' }))
+  })
+
+  it('from list-opened details returns to the List tab with focus on the card', async () => {
+    stubViewport(false)
+    stubData()
+    const user = userEvent.setup()
+    renderWithBack('/')
+    await findCards()
+    await user.click(within(cardFor('Prospect Park')).getByRole('link'))
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    await user.click(screen.getByRole('button', { name: 'history back' }))
+    await findCards()
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true')
+    expect(mapRegion()).toHaveClass('hidden')
+    expect(document.activeElement).toBe(within(cardFor('Prospect Park')).getByRole('link'))
+  })
+})
+
+describe('No clickable div or span', () => {
+  it('no div/span in the app source has an onClick', () => {
+    const files = [
+      'src/App.jsx',
+      'src/components/ParkList.jsx',
+      'src/components/ParkDetails.jsx',
+      'src/components/ParkMap.jsx',
+      'src/components/ParkPreview.jsx',
+    ]
+    for (const file of files) {
+      const source = readFileSync(resolve(process.cwd(), file), 'utf8')
+      expect(source, file).not.toMatch(/<(div|span)\b[^>]*\bonClick=/)
+    }
   })
 })
