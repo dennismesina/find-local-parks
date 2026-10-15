@@ -420,6 +420,13 @@ describe('Park details', () => {
     }
   })
 
+  it('opens OpenStreetMap in a new tab and says so to screen readers', async () => {
+    await openDetails('prospect-park')
+    const osm = screen.getByRole('link', { name: 'Open in OpenStreetMap (opens in new tab)' })
+    expect(osm).toHaveAttribute('target', '_blank')
+    expect(osm).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
   it('shows "Address not listed" in muted text for a missing address', async () => {
     await openDetails('highland-dog-park')
     expect(screen.getByText('Address not listed')).toHaveClass('text-muted')
