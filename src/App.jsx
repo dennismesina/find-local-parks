@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Route, Routes, useParams } from 'react-router'
+import ParkDetails from './components/ParkDetails.jsx'
 import ParkList from './components/ParkList.jsx'
 import { useParks } from './data/useParks.js'
 
@@ -19,7 +20,7 @@ function NotFound() {
   )
 }
 
-function ParkDetailsPlaceholder({ parks, onOpen }) {
+function ParkDetailsRoute({ parks, onOpen }) {
   const { id } = useParams()
   const park = parks.find((p) => p.id === id)
 
@@ -30,7 +31,7 @@ function ParkDetailsPlaceholder({ parks, onOpen }) {
 
   if (!park) return <NotFound />
 
-  return <h1 className="text-[28px] font-extrabold">{park.name}</h1>
+  return <ParkDetails park={park} />
 }
 
 function ParksPanel({ status, parks, retry, lastParkId, setLastParkId }) {
@@ -69,7 +70,7 @@ function ParksPanel({ status, parks, retry, lastParkId, setLastParkId }) {
       />
       <Route
         path="/parks/:id"
-        element={<ParkDetailsPlaceholder parks={parks} onOpen={setLastParkId} />}
+        element={<ParkDetailsRoute parks={parks} onOpen={setLastParkId} />}
       />
       <Route path="*" element={<NotFound />} />
     </Routes>
