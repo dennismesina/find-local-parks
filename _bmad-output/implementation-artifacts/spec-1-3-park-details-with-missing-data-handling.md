@@ -68,6 +68,31 @@ context:
 - Given a park with images, then one `<img>` shows with alt naming the park and a "Photo 1 of N" label.
 - Given any of the 12 sample parks, when details render, then nothing crashes and no value reads "null", "undefined" or "NaN".
 
+### Review Findings
+
+Code review 2026-10-14 (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) of commit `c08a597`.
+
+- [x] [Review][Patch] The OSM link's "(opens in new tab)" hint and its `target`/`rel` are untested: the name regex `/^Open in OpenStreetMap/` is a prefix match, so the BH6 fix can be deleted without any test failing [src/App.test.jsx:375]
+
+**Rejected**
+
+- `false` — Spec `status: 'done'` vs sprint-status `review` (BH, AA): the fix would edit the spec under review, and this review's status sync settles it.
+- `false` — Sprint status leaves 1-2 `in-progress` (BH): this was set deliberately by `6430967` after 1-2's review left patches open. This change did not cause it.
+- `false` — Implementation Notes / Spec Change Log are empty (BH): the fix would edit the spec under review. The applied patches show in the diff and the triage log.
+- `false` — `osmUrl` could emit `NaN` in the href (BH, EC, AA): the normalizer sets `hasCoords` only when `lat`/`lng` pass `numberInRange`, so the link never renders with non-finite coordinates.
+- `low` — Null `name` gives an empty `<h1>` and alt "Photo of null", which the no-null test misses (EC, BH, AA): all 12 sample parks have names, `name` is required by the data contract, and the fix adds a fallback branch. This is the same call as 1.1 EC2, 1.2 BH1 and 1.3 pass-1 EC1/EC4.
+- `low` — `0` acres / `0.0 / 5` rendered as real values (BH): the normalizer treats 0 as valid, no sample park has 0, and the design's "do not show 0" applies only to `null`.
+- `false` — No range check on rating (BH): `normalizePark` already nulls ratings outside 0–5.
+- `false` — Every address is muted, so the missing-address test is weak (BH): the design table asks only for "secondary text colour", and the design shows every address muted. This is the same call as pass-1 BH2.
+- `false` — Deep link to `/parks/:id` moves focus to the `<h1>` (BH): focusing the page heading on route load is the intended SPA pattern, so nothing bad happens.
+- `false` — The deferred-work entry lacks an id/status (BH): the ledger is new, and the loop sweep's `--migrate` handles pre-DW-format entries.
+- `false` — "Photo 1 of N" implies a gallery (BH): `design/README.md` asks for exactly this label on a single image.
+- `low` — A dash-only amenity token (`"-"`) renders an empty tag (EC): no sample data does this, and the fix adds a filter.
+- `false` — Same park id re-rendered with new images keeps a stale failed state (EC): parks load once, and no path changes a park's images in place.
+- `low` — `formatAcres` has no rounding or thousands separator (EC): sample acreages are integers ≤ 640. This is the same call as pass-1 EC3/BH4.
+- `low` — `toFixed(1)` rounds a two-decimal rating (AA): no sample rating has two decimals, and one decimal is a spec Decision.
+- `false` — Park-to-park refocus and `PhotoArea` reset are untested (AA, VG other): this is already deferred in `deferred-work.md` (VG2), so it is not a new finding.
+
 ## Implementation Notes
 
 ## Spec Change Log

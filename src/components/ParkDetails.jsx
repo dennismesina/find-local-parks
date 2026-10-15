@@ -122,8 +122,8 @@ export default function ParkDetails({ park }) {
             rel="noopener noreferrer"
             className="focus-ring inline-flex min-h-11 items-center rounded font-semibold text-forest underline"
           >
-            Open in OpenStreetMap
-            <span className="sr-only"> (opens in new tab)</span>
+            Open in OpenStreetMap{' '}
+            <span className="sr-only">(opens in new tab)</span>
           </a>
         </p>
       )}
