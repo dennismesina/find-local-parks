@@ -3,7 +3,7 @@ title: 'Story 1.2: Park list with keyboard selection'
 type: 'feature'
 created: '2026-10-14'
 baseline_commit: 'db7ac92a5a8ff8c8e42531fa18fb2991a49bfe68'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -60,6 +60,34 @@ context:
 - Given a focused card, when the user presses Enter, then the URL becomes `/parks/:id` and that park's heading renders.
 - Given a card, when the user clicks or taps it, then the app navigates to that park's details.
 - Given the list renders, then all 12 parks appear inside a single `<ul>` under the "All parks" h1 and its hint.
+
+### Review Findings
+
+Code review 2026-10-14 (blind-hunter, edge-case-hunter, verification-gap, acceptance-auditor) of `db7ac92..8c274b7`.
+
+- [ ] [Review][Patch] Full card accessible name (separator spaces) is not asserted; deleting any `{' '}` after the address or inside the tag `Fragment` still passes all 50 tests (medium, verification-gap) [src/App.test.jsx:171]
+- [ ] [Review][Patch] `amenityLabel` trims before replacing dashes, so `'-foo'` → " foo" (leading space, no capital) and `'dog--run'` → "Dog  run"; replace `/-+/g` then trim (low, edge-case-hunter) [src/data/format.js:3]
+- [ ] [Review][Patch] Address ternary duplicates the same `<span className="block text-muted">`; collapse to `{park.address ?? 'Address not listed'}` so styling cannot drift (low, blind-hunter) [src/components/ParkList.jsx:29]
+
+**Rejected:**
+- Null `name` renders empty card title (BH/EC) — low, unlikely: `name` required by `park-data.md`, all 12 have one; same call as pass-1 BH1/EC2.
+- Null/duplicate `id` → duplicate keys, `/parks/null` (EC) — low, unlikely: `id` required, sample ids unique; same as pass-1 BH2/EC1.
+- Park id with `/ ? # %` needs `encodeURIComponent` (EC) — low, unlikely: all sample ids are kebab-case slugs.
+- Duplicate amenity tokens shown twice, "+N more" inflated (EC) — low, unlikely: no sample park repeats a token; dedupe adds logic.
+- Focus restored on any return to `/`, not only Back (BH/EC) — low, unlikely: no in-app link from details to `/` yet; same as pass-1 BH5/EC6.
+- `useEffect(..., [])` fails exhaustive-deps; StrictMode double run (BH) — false: no ESLint in project; second run focuses the same card and re-clears null.
+- `ParkList` doc comment misleading about order (BH) — false: comment says "loader order with loader numbers", which is exactly what it does.
+- No empty state for zero parks (BH) — low, unlikely: same as pass-1 BH7/EC5.
+- Long accessible name per card (BH) — rejected by design: Design Notes accept it; changing it edits the spec.
+- Unmatched `focusParkId` / focus-visible ring after programmatic focus (BH/EC) — maybe-false, low at most: would need a real-browser check of `:focus-visible` after Back; rejected as low.
+- `amenityLabel('')` returns empty pill (BH) — low, unlikely: `stringList` filters blanks before any caller.
+- Missing test assertions: badge aria-hidden, invalid id leaves `lastParkId` null, click test not checking list gone (BH) — false/low: removing `aria-hidden` already breaks the `^N\. ` assertion (VG); the other two are negligible.
+- Enter/click tests never assert the URL (AA) — false: `ParkDetailsPlaceholder` renders the park h1 only on `/parks/:id`, so the heading proves the route.
+- `focus-ring` asserted on one card only (AA) — false: every card comes from the same `ParkCard` className; one card proves all.
+- No 13th Tab to rule out an extra stop (AA) — false: card markup has no other focusables (chevron is `aria-hidden` svg).
+- Order checked against hard-coded A–Z list (AA) — false: sample JSON is unsorted, so the test observes the loader's sort (VG).
+- `onFocusUsed` fires even when no card matched (AA) — false as defect: matches the Design Notes "read once, then clear" intent.
+- Commit claims "tests for every list edge case" (EC) — low: the untested edges are the rejected unlikely ones above; no code change.
 
 ## Implementation Notes
 
