@@ -128,6 +128,7 @@ This app was built with AI help, and the conversation logs are included unredact
   - `transcripts/06-story3-review.txt`
   - `transcripts/07-story4-dev-review.txt`
   - `transcripts/08-story5-dev-review.txt`
+  - `transcripts/09-story6-dev-review.txt`
 - **Claude Design** (the UI designs): `transcripts/design-transcript.md`.
 - **Transcript tooling side-quest** (writing the export script): `transcripts/tool-transcript.md`. The script itself is `tools/merge_session_transcripts.py`, which merges a Claude Code session's main and subagent transcripts into one timeline.
 
