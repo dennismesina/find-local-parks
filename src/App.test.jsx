@@ -558,7 +558,7 @@ describe('Park details', () => {
     ).toHaveFocus()
 
     await user.tab({ shift: true })
-    expect(screen.getByRole('link', { name: 'All parks' })).toHaveFocus()
+    expect(within(asideRegion()).getByRole('link', { name: 'All parks' })).toHaveFocus()
     await user.keyboard('{Enter}')
     await findCards()
     expect(document.activeElement).toBe(

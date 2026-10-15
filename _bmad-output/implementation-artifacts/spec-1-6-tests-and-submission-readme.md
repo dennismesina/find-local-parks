@@ -60,6 +60,10 @@ context:
 - Given `npm test`, then output has no "Unhandled Errors" section and every AC test from epics.md Story 1.6 maps to a named test listed in the README.
 - Given the README, then each item in the Story 1.6 README AC appears under its own heading, and every file path it names exists.
 
+## Implementation Notes
+
+- Post-rebase onto Story 1.5 (`a4a648b`): the keyboard-only test now scopes its "All parks" lookup to the sidebar, because 1.5 added a second link in the phone header (the same pattern as 1.5's own tests). The README now describes 1.5 as delivered (desktop/phone layouts, toggle, Back to the originating tab, accessibility, `document.title`). It drops the "in progress" markers and the stale `document.title` next step, and lists `transcripts/08-story5-dev-review.txt`, moved from the repo root. 131 tests pass; the build succeeds.
+
 ## Review Triage Log
 
 Pass 1 (blind-hunter BH, edge-case-hunter EC, verification-gap VG) of `ea328a0..working tree` (excluding this spec and `sprint-status.yaml`). VG: no gaps; it verified that removing `key={park.id}` from `PhotoArea` or setting the heading-focus deps to `[]` fails the park→park test, and that removing either focus call fails the keyboard test.
