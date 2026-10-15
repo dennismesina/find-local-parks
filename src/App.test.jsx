@@ -541,6 +541,31 @@ describe('Park details', () => {
     }
   })
 
+  it('keyboard only: Tab to a card, Enter, heading focused, "All parks" returns focus to the card', async () => {
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/')
+    await findCards()
+    const target = within(cardFor('Old Mill Botanical Garden')).getByRole('link')
+    for (let i = 0; i < 20 && document.activeElement !== target; i++) {
+      await user.tab()
+    }
+    expect(target).toHaveFocus()
+
+    await user.keyboard('{Enter}')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Old Mill Botanical Garden' }),
+    ).toHaveFocus()
+
+    await user.tab({ shift: true })
+    expect(screen.getByRole('link', { name: 'All parks' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    await findCards()
+    expect(document.activeElement).toBe(
+      within(cardFor('Old Mill Botanical Garden')).getByRole('link'),
+    )
+  })
+
   it('"All parks" returns to the list with focus on that park\'s card', async () => {
     stubData()
     const user = userEvent.setup()
@@ -748,14 +773,38 @@ describe('Map on desktop (≥ 768px)', () => {
     )
     await user.click(await findMarkerByName('Prospect Park'))
     await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
-    // Outside Leaflet's 200ms synthetic-dblclick window (it zooms, which jsdom cannot measure).
-    await new Promise((resolve) => setTimeout(resolve, 250))
-    await user.click(markerNamed('Prospect Park'))
+    // Two clicks within 200 ms make Leaflet synthesize a map dblclick, which
+    // jsdom's zero-size layout turns into a NaN LatLng. Move the clock past it.
+    const later = Date.now() + 1000
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(later)
+    try {
+      await user.click(markerNamed('Prospect Park'))
+    } finally {
+      clock.mockRestore()
+    }
     expect(screen.getByTestId('location')).toHaveTextContent('/parks/prospect-park')
 
     await user.click(screen.getByRole('button', { name: 'back' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'All parks' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+  })
+
+  it('moves from a park with a failed image straight to another park via its marker', async () => {
+    stubViewport(true)
+    stubData()
+    const user = userEvent.setup()
+    renderAt('/parks/prospect-park')
+    await screen.findByRole('heading', { level: 1, name: 'Prospect Park' })
+    fireEvent.error(screen.getByRole('img', { name: 'Photo of Prospect Park' }))
+    expect(screen.getByText('No photos for this park yet')).toBeInTheDocument()
+
+    await user.click(markerNamed('Lakeshore Point'))
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Lakeshore Point' })
+    expect(heading).toHaveFocus()
+    expect(screen.getByRole('img', { name: 'Photo of Lakeshore Point' })).toBeInTheDocument()
+    expect(screen.queryByText('No photos for this park yet')).toBeNull()
+    expect(markerNamed('Lakeshore Point')).toHaveClass('bg-amber')
+    expect(markerNamed('Prospect Park')).not.toHaveClass('bg-amber')
   })
 
   it('treats a missing matchMedia as desktop', async () => {
